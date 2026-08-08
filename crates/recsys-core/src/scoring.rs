@@ -1,22 +1,23 @@
 pub use crate::Item;
 
 pub trait ScoringStrategy {
-    /// Given profile + embedded candidates, return (item, score) sorted best-first.
+    type Representation;
+    
     fn score(
         &self,
-        profile_engage_vecs: &[Vec<f32>],
-        profile_ignore_vecs: &[Vec<f32>],
-        candidates: &[(Item, Vec<f32>)],
-    ) -> Vec<(Item, f32)>;
-
-    fn score_simple(
-        &self,
-        profile_engage_vec: &Vec<Item>,
-        profile_ignore_vec: &Vec<Item>,
-        candidates: &[Item]
+        engage: &[Self::Representation],
+        ignore: &[Self::Representation],
+        candidates: &[(Item, Self::Representation)],
     ) -> Vec<(Item, f32)>;
 }
 
+pub trait FeatureExtractor<Repr> {
+    fn extract(&self, item: &Item) -> anyhow::Result<Repr>;
+
+    fn extract_batch(&self, items: &[Item]) -> anyhow::Result<Vec<Repr>> {
+        items.iter().map(|item| self.extract(item)).collect()
+    }
+}
 
 
 pub struct CentroidScorer {

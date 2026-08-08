@@ -1,49 +1,42 @@
-pub use crate::scoring::ScoringStrategy;
+pub use crate::scoring::{ScoringStrategy, FeatureExtractor};
 pub use crate::embedding::EmbeddingProvider;
-pub use crate::query_formulator::QueryFormulator;
+pub use crate::query_formulator::QueryBuilder;
 pub use crate::profile::Profile;
 pub use crate::scraper::Scraper;
 pub use crate::item::Item;
 
 
-pub struct RecommendationEngine<E: EmbeddingProvider, Q: QueryFormulator, S: ScoringStrategy> {
-    pub embedder: E,
-    pub formulator: Q,
+pub struct RecommendationEngine<F, QB, S, R>
+where
+    S: ScoringStrategy,
+    F: FeatureExtractor<S::Representation>,
+    R: Scraper,
+    QB: QueryBuilder<R::Representation>,
+{
+    pub extractor: F,
+    pub query_builder: QB,
     pub scorer: S,
-    pub scrapers: Vec<Box<dyn Scraper>>,
+    pub scraper: R,
 }
 
-impl<E: EmbeddingProvider, Q: QueryFormulator, S: ScoringStrategy> RecommendationEngine<E, Q, S> {
+impl<F, QB, S, R> RecommendationEngine<F, QB, S, R>
+where
+    S: ScoringStrategy,
+    F: FeatureExtractor::<S::Representation>,
+    R: Scraper,
+    QB: QueryBuilder<R::Representation>,
+{
     pub fn recommend(&self, profile: &Profile, limit_per_source: u32) -> anyhow::Result<Vec<(Item, f32)>> {
-        // 1. Build topic context from recent engagement (plain text, no embeddings)
-        let topic_context = summarize_recent_engagement(&profile.engage_history);
+        let query = self.query_builder.build_query(&profile.engage_history, self.scraper.query_style_hint())?;
+        
+        let candidates = self.scraper.scrape(&query, limit_per_source)?;
 
-        // 2. Per-scraper query formulation + scrape
-        let mut candidates = Vec::new();
-        for scraper in &self.scrapers {
-            let keywords = self.formulator.formulate(&topic_context, scraper.query_style_hint())?;
-            candidates.extend(scraper.scrape(&keywords, limit_per_source)?);
-        }
+        let engage_repr = self.extractor.extract_batch(&profile.engage_history).expect("failed to get history repr");
+        let ignore_repr = self.extractor.extract_batch(&profile.ignore_history).expect("failed to get history repr");
+        let candidate_repr = self.extractor.extract_batch(&candidates).expect("failed to get candidate repr");
+        let embedded: Vec<(Item, S::Representation)> = candidates.into_iter().zip(candidate_repr).collect();
 
-        // 3. Embed everything in one shared space
-        let engage_vecs = self.embedder.embed_batch(
-            &profile.engage_history.iter().map(|i| i.text.clone()).collect::<Vec<_>>()
-        )?;
-        let ignore_vecs = self.embedder.embed_batch(
-            &profile.ignore_history.iter().map(|i| i.text.clone()).collect::<Vec<_>>()
-        )?;
-        let candidate_texts: Vec<String> = candidates.iter().map(|i| i.text.clone()).collect();
-        let candidate_vecs = self.embedder.embed_batch(&candidate_texts)?;
-        let embedded_candidates: Vec<(Item, Vec<f32>)> =
-            candidates.into_iter().zip(candidate_vecs).collect();
-
-        // 4. Score
-        Ok(self.scorer.score(&engage_vecs, &ignore_vecs, &embedded_candidates))
+        Ok(self.scorer.score(&engage_repr, &ignore_repr, &embedded))
+        
     }
-}
-
-fn summarize_recent_engagement(history: &[Item]) -> String {
-    // simplest version: just join recent titles. Can upgrade to TF-IDF/RAKE later.
-    history.iter().rev().take(20).map(|i| i.title.clone())
-        .collect::<Vec<_>>().join("; ")
 }

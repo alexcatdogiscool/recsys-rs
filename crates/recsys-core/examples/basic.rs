@@ -1,50 +1,46 @@
 
-use recsys_core::{Item, Profile, Scraper, RecommendationEngine, EmbeddingProvider, QueryFormulator, ScoringStrategy};
+use recsys_core::{
+    Item,
+    Profile,
+    Scraper,
+    RecommendationEngine,
+    EmbeddingProvider,
+    QueryBuilder,
+    ScoringStrategy,
+    FeatureExtractor,
+};
 use std::fs;
 use rand::Rng;
 use std::collections::HashMap;
 
-struct fakeScraper;
-
-impl Scraper for fakeScraper {
+struct FakeScraper;
+impl Scraper for FakeScraper {
+    type Representation = u32;
     fn source_name(&self) -> &str {
-        "fake"
+        "FakeScraper"
     }
 
-    fn query_style_hint(&self) -> &str { "fake-hint" }
+    fn scrape(&self, keywords: &Self::Representation, limit: u32) -> anyhow::Result<Vec<Item>> {
+        let contents: String = fs::read_to_string("test.txt")?;
+        let words: Vec<&str> = contents.split(" ").collect();
 
-    fn scrape(&self, keywords: &[String], limit: u32) -> anyhow::Result<Vec<Item>> {
-        let fp = "test.txt";
-        let res: anyhow::Result<Vec<Item>> = match fs::read_to_string(fp) {
-            Ok(contents) => {
-                let words: Vec<String> = contents.split(" ").map(|s| { s.to_string() }).collect();
-                let mut rng = rand::rng();
-                let mut chosen: Vec<Item> = Vec::new();
-                for i in 0..limit {
-                    let item = words[rng.random_range(0..words.len()-1)].clone();
+        let mut rand = rand::rng();
 
-                    chosen.push(
-                        Item {
-                            id: "none".to_string(),
-                            source: "none".to_string(),
-                            title: "none".to_string(),
-                            text: item,
-                            url: None,
-                            metadata: HashMap::new()
-                        }
-                    );
+        let mut items: Vec<Item> = Vec::new();
+        for i in 0..limit {
+            let w = words[rand.random_range(0..words.len()-1)];
+            items.push(
+                Item {
+                    id: "".to_string(),
+                    source: "".to_string(),
+                    title: "".to_string(),
+                    text: w.to_string(),
+                    url: None,
+                    metadata: HashMap::new(),
                 }
-
-                Ok(chosen)
-
-                
-
-            }
-            _ => {
-                Ok(Vec::new())
-            }
-        };
-        return res;
+            );
+        }
+        Ok(items)
     }
 
     fn get(&self, id: &str) -> anyhow::Result<Option<Item>> {
@@ -52,68 +48,73 @@ impl Scraper for fakeScraper {
     }
 }
 
-struct LengthScorer {
-    pub ingnore_penalty: f32,
-    pub exploration_fraction: f32,
+impl QueryBuilder<u32> for FakeScraper {
+    fn build_query(&self, engage_history: &[Item], _style_hint: &str) -> anyhow::Result<u32> {
+        // e.g. average length of what the user's engaged with so far
+        if engage_history.is_empty() { return Ok(4); }
+        let avg = engage_history.iter().map(|i| i.text.len() as u32).sum::<u32>() / engage_history.len() as u32;
+        Ok(avg)
+    }
 }
 
-impl ScoringStrategy for LengthScorer {
-    fn score(&self, engage: &[Vec<f32>], ignore: &[Vec<f32>], candidates: &[(Item, Vec<f32>)]) -> Vec<(Item, f32)> {
-        let scored: Vec<(Item, f32)> = candidates.iter().map(|item| {
-            let s = (4.0 - item.0.text.len() as f32).abs();
-            (item.0.clone(), s)
-        }).collect();
+struct FakeScorer;
+impl ScoringStrategy for FakeScorer {
+    type Representation = u32;
 
-        scored
-    }
-
-    fn score_simple(
+    fn score(
         &self,
-        profile_engage_vec: &Vec<Item>,
-        profile_ignore_vec: &Vec<Item>,
-        candidates: &[Item]
-    ) -> Vec<(Item, f32)>
-    {
-        let mut prev_engage: f32 = profile_engage_vec.iter().map(|item| {
-            item.text.len() as f32
-        }).into_iter().sum();
+        engage: &[Self::Representation],
+        ignore: &[Self::Representation],
+        candidates: &[(Item, Self::Representation)],
+    ) -> Vec<(Item, f32)> {
+        let mut engage_score: f32 = engage.iter()
+            .map(|i| *i).sum::<u32>() as f32;
 
-        prev_engage = prev_engage / profile_engage_vec.len() as f32;
+        
+        engage_score = engage_score / ( if candidates.len() == 0 { 1 } else { candidates.len() } as f32);
+        
 
-        let scored: Vec<(Item, f32)> = candidates.iter().map(|item| {
-            let s = (prev_engage - item.text.len() as f32).abs();
-            (item.clone(), s)
-        }).collect();
+        
+        let scored: Vec<(Item, f32)> = candidates.iter().map(| tup | {
+                let item = tup.0.clone();
+                let rep = tup.1;
+                return (item, (rep as f32 - engage_score).abs())
+            }).collect();
 
-        scored
+        return scored;        
     }
 }
 
-struct FakeEmbedder;
-impl EmbeddingProvider for FakeEmbedder {
-    fn embed(&self, text: &str) -> anyhow::Result<Vec<f32>> {
-        // deterministic fake: hash-ish, not random, so runs are reproducible
-        Ok(vec![text.len() as f32, 1.0, 0.5])
+impl FeatureExtractor<u32> for FakeScorer {
+    fn extract(&self, item: &Item) -> anyhow::Result<u32> {
+        Ok(item.text.len() as u32)
     }
 }
 
-struct FakeFormulator;
-impl QueryFormulator for FakeFormulator {
-    fn formulate(&self, topic: &str, _hint: &str) -> anyhow::Result<Vec<String>> {
-        Ok(vec![topic.to_string()])
-    }
-}
+
+
 
 fn main() -> anyhow::Result<()> {
+    
+
     let engine = RecommendationEngine {
-        embedder: FakeEmbedder,
-        formulator: FakeFormulator,
-        scorer: LengthScorer { ingnore_penalty: 0.0, exploration_fraction: 0.2 },
-        scrapers: vec![Box::new(fakeScraper)]
+        extractor: FakeScorer,
+        query_builder: FakeScraper,
+        scorer: FakeScorer,
+        scraper: FakeScraper,
+    };
+
+    let seed_item = Item {
+        id: "".to_string(),
+        source: "".to_string(),
+        title: "".to_string(),
+        text: "hello".to_string(),
+        url: None,
+        metadata: HashMap::new(),
     };
 
     let profile = Profile {
-        engage_history: Vec::new(),
+        engage_history: Vec::new(),//vec![seed_item],
         ignore_history: Vec::new(),
     };
 

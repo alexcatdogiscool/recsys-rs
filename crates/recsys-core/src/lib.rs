@@ -8,8 +8,8 @@ mod engine;
 
 pub use item::Item;
 pub use profile::Profile;
-pub use scraper::Scraper;
-pub use query_formulator::QueryFormulator;
+pub use scraper::{Scraper};
+pub use query_formulator::QueryBuilder;
 pub use embedding::EmbeddingProvider;
-pub use scoring::{ScoringStrategy, CentroidScorer};
+pub use scoring::{ScoringStrategy, CentroidScorer, FeatureExtractor};
 pub use engine::RecommendationEngine;
