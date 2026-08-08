@@ -1,0 +1,23 @@
+[package]
+name = "recsys-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "General-purpose, source-agnostic recommendation engine: profile, scraper, embedding, and scoring traits with a default centroid-similarity strategy."
+
+# Deliberately minimal: no HTTP client, no async runtime, no LLM/embedding SDK.
+# Anything that touches the network or a specific model provider belongs in a
+# separate crate (recsys-scraper-*, recsys-embed-*, recsys-llm-*) that depends
+# on this one — never the reverse.
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+rand = "0.9"
+
+[dev-dependencies]
+# For the fake in-memory Scraper/EmbeddingProvider used in core's own tests
+# and in examples/basic_loop.rs — keeps the "does the plumbing work" check
+# runnable with zero network calls.

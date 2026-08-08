@@ -1,0 +1,36 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/recsys-core",
+    #"crates/recsys-scraper-reddit",
+    #"crates/recsys-scraper-wiki",
+    #"crates/recsys-scraper-scholar",
+    #"crates/recsys-embed-openai",
+    #"crates/recsys-embed-local",
+    #"crates/recsys-llm-openai",
+    #"crates/recsys-cli",
+]
+
+# Shared metadata + lint/profile settings for all workspace members.
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT OR Apache-2.0"
+
+# Pin shared dependency versions once here; member crates reference them
+# with `workspace = true` so you're not juggling versions across 8 Cargo.tomls.
+[workspace.dependencies]
+recsys-core = { path = "crates/recsys-core" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+thiserror = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+reqwest = { version = "0.12", features = ["json"] }
+rand = "0.9"
+
+[profile.release]
+lto = true
+codegen-units = 1
