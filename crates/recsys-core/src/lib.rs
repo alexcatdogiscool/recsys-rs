@@ -12,4 +12,4 @@ pub use scraper::{Scraper};
 pub use query_formulator::QueryBuilder;
 pub use embedding::EmbeddingProvider;
 pub use scoring::{ScoringStrategy, CentroidScorer, FeatureExtractor};
-pub use engine::RecommendationEngine;
+pub use engine::{RecommendationEngine, EngineBuilder};

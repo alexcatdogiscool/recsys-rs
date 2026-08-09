@@ -40,3 +40,58 @@ where
         
     }
 }
+
+pub struct Unset;
+pub struct EngineBuilder<F = Unset, QB = Unset, S = Unset, R = Unset> {
+    pub extractor: F,
+    pub query_builder: QB,
+    pub scorer: S,
+    pub scraper: R,
+}
+
+impl EngineBuilder {
+    pub fn new() -> Self {
+        EngineBuilder { 
+            extractor: Unset,
+            query_builder: Unset,
+            scorer: Unset,
+            scraper: Unset
+        }
+    }
+}
+
+impl<F, QB, S, R> EngineBuilder<F, QB, S, R> {
+    pub fn scorer<S2>(self, scorer: S2) -> EngineBuilder<F, QB, S2, R> {
+        EngineBuilder { extractor: self.extractor, query_builder: self.query_builder, scorer, scraper: self.scraper }
+    }
+
+    pub fn exctractor<F2>(self, extractor: F2) -> EngineBuilder<F2, QB, S, R> {
+        EngineBuilder { extractor, query_builder: self.query_builder, scorer: self.scorer, scraper: self.scraper }
+    }
+
+    pub fn scraper<R2>(self, scraper: R2) -> EngineBuilder<F, QB, S, R2> {
+        EngineBuilder { extractor: self.extractor, query_builder: self.query_builder, scorer: self.scorer, scraper }
+    }
+
+    pub fn query_builder<QB2>(self, query_builder: QB2) -> EngineBuilder<F, QB2, S, R> {
+        EngineBuilder { extractor: self.extractor, query_builder, scorer: self.scorer, scraper: self.scraper }
+    }
+}
+
+
+impl<F, QB, S, R> EngineBuilder<F, QB, S, R>
+where 
+    F: FeatureExtractor<S::Representation>,
+    QB: QueryBuilder<R::Representation>,
+    S: ScoringStrategy,
+    R: Scraper,
+{
+    pub fn build(self) -> RecommendationEngine<F, QB, S, R> {
+        RecommendationEngine {
+            extractor: self.extractor,
+            query_builder: self.query_builder,
+            scorer: self.scorer,
+            scraper: self.scraper
+        }
+    }
+}
