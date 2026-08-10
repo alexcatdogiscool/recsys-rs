@@ -65,7 +65,7 @@ impl<F, QB, S, R> EngineBuilder<F, QB, S, R> {
         EngineBuilder { extractor: self.extractor, query_builder: self.query_builder, scorer, scraper: self.scraper }
     }
 
-    pub fn exctractor<F2>(self, extractor: F2) -> EngineBuilder<F2, QB, S, R> {
+    pub fn extractor<F2>(self, extractor: F2) -> EngineBuilder<F2, QB, S, R> {
         EngineBuilder { extractor, query_builder: self.query_builder, scorer: self.scorer, scraper: self.scraper }
     }
 

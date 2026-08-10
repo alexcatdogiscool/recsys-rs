@@ -1,0 +1,22 @@
+[package]
+name = "recsys-embed-local"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = ""
+
+# Deliberately minimal: no HTTP client, no async runtime, no LLM/embedding SDK.
+# Anything that touches the network or a specific model provider belongs in a
+# separate crate (recsys-scraper-*, recsys-embed-*, recsys-llm-*) that depends
+# on this one — never the reverse.
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+rand = "0.9"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json"] }
+
+[dev-dependencies]

@@ -1,0 +1,16 @@
+[package]
+name = "recsys-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = ""
+
+
+
+[dependencies]
+recsys-core = { workspace = true }
+recsys-embed-local = { path = "../recsys-embed-local" }
+anyhow = { workspace = true }
+tokio = { version = "1", features = ["full"] }
+rand = "0.9"
