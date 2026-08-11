@@ -19,15 +19,16 @@ impl Scraper for ArxivScraper {
     }
 
     fn scrape(&mut self, keywords: &Self::Representation, limit: u32) -> anyhow::Result<Vec<Item>> {
+        
         let args = QueryParams::and(
             vec![
-                QueryParams::or(
-                    {
-                        keywords.iter().map(|s| {
-                            QueryParams::title(s)
-                        }).collect()
+                QueryParams::or({
+                    let mut terms: Vec<_> = keywords.iter().map(|s| QueryParams::title(s)).collect();
+                    if terms.is_empty() {
+                        terms.push(QueryParams::title(" "));
                     }
-                )
+                    terms
+                })
             ]
         );
         let mut arxiv = ArXiv::from_args(args);
@@ -52,6 +53,7 @@ impl Scraper for ArxivScraper {
                 }
             );
         }
+        println!("number of scraped results: {}", items.len());
         Ok(items)
         //Ok(response)
     }
