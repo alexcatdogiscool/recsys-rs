@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 use tokio;
 use reqwest;
+use recsys_core::{
+    FeatureExtractor,
+    Item,
+};
 
 #[derive(Serialize, Deserialize)]
 struct ApiRequest {
@@ -20,14 +24,16 @@ struct ApiResponse {
 #[derive(Clone)]
 pub struct OllamaApi {
     pub url: String,
+    pub model_name: String,
     pub dim: u32,
+    pub context_window_size: u32,
 }
 
 
 impl OllamaApi {
 
-    pub fn new(url: String, dim: u32) -> Self {
-        Self { url, dim }
+    pub fn new(url: String, model_name: String, dim: u32, context_window_size: u32) -> Self {
+        Self { url, model_name, dim, context_window_size }
     }
 
     pub async fn fetch(self, sentences: Vec<String>) -> anyhow::Result<Vec<Vec<f32>>> {
@@ -35,7 +41,7 @@ impl OllamaApi {
         let client = reqwest::Client::new();
 
         let body = ApiRequest {
-            model: "qwen3-embedding:0.6b".to_string(),
+            model: self.model_name,
             input: sentences,
         };
 
@@ -50,4 +56,12 @@ impl OllamaApi {
 
         Ok(response.embeddings)
     }
+}
+
+impl FeatureExtractor<Vec<f32>> for OllamaApi {
+fn extract(&self, item: &Item) -> anyhow::Result<Vec<f32>> {
+    let rt = tokio::runtime::Runtime::new()?;
+    let mut result = rt.block_on(self.clone().fetch(vec![item.text.clone()]))?;
+    result.pop().ok_or_else(|| anyhow::anyhow!("empty embedding response"))
+}
 }

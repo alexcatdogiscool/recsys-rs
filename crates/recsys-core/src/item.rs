@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use serde_json::Value;
 
+use crate::{FeatureExtractor, ScoringStrategy};
+
 #[derive(Clone, Debug)]
 pub struct Item {
     pub id: String,           // stable unique id (url, or source-prefixed id)

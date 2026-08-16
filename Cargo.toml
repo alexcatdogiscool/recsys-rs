@@ -6,9 +6,10 @@ members = [
     #"crates/recsys-scraper-wiki",
     #"crates/recsys-scraper-scholar",
     #"crates/recsys-embed-openai",
-    #"crates/recsys-embed-local",
+    "crates/recsys-embed-local",
     #"crates/recsys-llm-openai",
-    #"crates/recsys-cli",
+    "crates/recsys-cli",
+    "crates/recsys-scraper",
 ]
 
 # Shared metadata + lint/profile settings for all workspace members.

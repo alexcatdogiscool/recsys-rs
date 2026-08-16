@@ -11,6 +11,9 @@ description = ""
 [dependencies]
 recsys-core = { workspace = true }
 recsys-embed-local = { path = "../recsys-embed-local" }
+recsys-scraper = { path = "../recsys-scraper" }
 anyhow = { workspace = true }
 tokio = { version = "1", features = ["full"] }
 rand = "0.9"
+keyword_extraction = { version = "1.5.0", features=["yake"] }
+stop-words = "0.8.0"

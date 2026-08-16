@@ -7,6 +7,6 @@ pub trait Scraper {
     /// Culture hint fed to the QueryFormulator, e.g. "informal, natural questions"
     fn query_style_hint(&self) -> &str { "" }
 
-    fn scrape(&self, keywords: &Self::Representation, limit: u32) -> anyhow::Result<Vec<Item>>;
+    fn scrape(&mut self, keywords: &Self::Representation, limit: u32) -> anyhow::Result<Vec<Item>>;
     fn get(&self, id: &str) -> anyhow::Result<Option<Item>>;
 }

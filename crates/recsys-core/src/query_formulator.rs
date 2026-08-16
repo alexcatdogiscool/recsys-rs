@@ -6,5 +6,19 @@ pub trait QueryFormulator {
 }
 
 pub trait QueryBuilder<Q> {
-    fn build_query(&self, engage_history: &[Item], style_hint: &str) -> anyhow::Result<Q>;
+    fn build_query(&mut self, engage_history: &[Item], style_hint: &str) -> anyhow::Result<Q>;
 }
+
+
+//      built in types
+
+// YAKE
+
+/*
+pub struct YakeExtractor;
+impl QueryBuilder<Vec<String>> for YakeExtractor {
+    fn build_query(&self, engage_history: &[Item], style_hint: &str) -> anyhow::Result<Vec<String>> {
+        
+    }
+}
+*/
